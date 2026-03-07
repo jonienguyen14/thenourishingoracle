@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Prep Oracle" />
+  <title>✦ Meal Prep Oracle ✦</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,900;1,900&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { background: #f0f7f2; font-family: 'Palatino Linotype', Palatino, Georgia, serif; -webkit-text-size-adjust: 100%; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+    @keyframes twinkle { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.7); } }
+    .star { animation: twinkle var(--dur, 2s) ease-in-out infinite; animation-delay: var(--del, 0s); position: absolute; color: #fff; }
+    .fade-up { animation: fadeUp 0.4s ease both; }
+    input:focus, button:focus { outline: none; }
+    ::-webkit-scrollbar { height: 4px; width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    button { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+
+    const PHASES = [
+      { id:"menstrual",  label:"Menstrual",  emoji:"🌑", days:"Days 1–5",   color:"#b03a2e", bg:"#fdf0ee", accent:"#d0604e", desc:"Rest & restore. Iron-rich, warm, gentle." },
+      { id:"follicular", label:"Follicular", emoji:"🌱", days:"Days 6–13",  color:"#1e7d45", bg:"#f0f7f2", accent:"#48a06a", desc:"Rising energy. Fresh, lean, light." },
+      { id:"ovulatory",  label:"Ovulatory",  emoji:"🌕", days:"Days 14–16", color:"#c47a1a", bg:"#fef9f0", accent:"#e09030", desc:"Peak power. Anti-inflammatory, vibrant." },
+      { id:"luteal",     label:"Luteal",     emoji:"🌘", days:"Days 17–28", color:"#5a3590", bg:"#f5f0fa", accent:"#8a5cc0", desc:"Slow down. Comforting, magnesium-rich." },
+    ];
+
+    const SEASONS = ["🌸 Spring","☀️ Summer","🍂 Fall","❄️ Winter"];
+    const TABS = ["🍽 Meals","🛒 Ingredients","👩‍🍳 Cook","🔄 Remixes","🧊 Safety","📅 Schedule"];
+
+    function getCurrentSeason() {
+      const m = new Date().getMonth();
+      if (m>=2&&m<=4) return "🌸 Spring";
+      if (m>=5&&m<=7) return "☀️ Summer";
+      if (m>=8&&m<=10) return "🍂 Fall";
+      return "❄️ Winter";
+    }
+
+    const FOODS = [
+      { label:"⭐ The Usual", value:"mango, broccoli, sweet potato, Beyond Meat, Greek yogurt, chia seeds, eggs" },
+      { label:"🥭 Mango", value:"mango" },
+      { label:"🥦 Broccoli", value:"broccoli" },
+      { label:"🍠 Sweet Potato", value:"sweet potato" },
+      { label:"🌱 Beyond Meat", value:"Beyond Meat" },
+      { label:"🫙 Greek Yogurt", value:"Greek yogurt" },
+      { label:"🌑 Chia Seeds", value:"chia seeds" },
+      { label:"🫘 Edamame", value:"edamame" },
+      { label:"🥚 Eggs", value:"eggs" },
+      { label:"🍋 Tofu", value:"tofu" },
+      { label:"🌾 Quinoa", value:"quinoa" },
+      { label:"🥑 Avocado", value:"avocado" },
+      { label:"🍓 Berries", value:"berries" },
+      { label:"🥕 Carrots", value:"carrots" },
+      { label:"🫙 Lentils", value:"lentils" },
+      { label:"🌰 Chickpeas", value:"chickpeas" },
+      { label:"🥬 Spinach", value:"spinach" },
+      { label:"🍄 Mushrooms", value:"mushrooms" },
+      { label:"🌿 Tempeh", value:"tempeh" },
+      { label:"🧀 Cottage Cheese", value:"cottage cheese" },
+      { label:"🫐 Açaí", value:"açaí" },
+      { label:"🌶 Kimchi", value:"kimchi" },
+      { label:"🥜 Almond Butter", value:"almond butter" },
+      { label:"🌾 Brown Rice", value:"brown rice" },
+    ];
+
+    const catLabel = { proteins:"💪 Proteins", produce:"🥦 Produce", pantry:"🫙 Pantry", dairy:"🥛 Dairy / Fridge" };
+
+    const STARS = [
+      {t:8,l:"6%",s:10,o:0.9,dur:"1.6s",del:"0s",c:"✦"},
+      {t:18,l:"14%",s:7,o:0.7,dur:"2.3s",del:"0.3s",c:"✶"},
+      {t:6,l:"25%",s:9,o:0.85,dur:"1.9s",del:"0.8s",c:"★"},
+      {t:24,l:"35%",s:6,o:0.65,dur:"2.6s",del:"0.2s",c:"✦"},
+      {t:10,l:"48%",s:8,o:0.8,dur:"1.4s",del:"1.1s",c:"✶"},
+      {t:5,l:"62%",s:11,o:0.9,dur:"2.1s",del:"0.6s",c:"✦"},
+      {t:20,l:"73%",s:7,o:0.7,dur:"1.7s",del:"0.4s",c:"★"},
+      {t:8,l:"84%",s:9,o:0.85,dur:"2.4s",del:"0.9s",c:"✶"},
+      {t:26,l:"92%",s:6,o:0.6,dur:"1.8s",del:"1.4s",c:"✦"},
+      {b:8,l:"10%",s:8,o:0.75,dur:"2.9s",del:"0.1s",c:"✦"},
+      {b:6,l:"30%",s:6,o:0.6,dur:"1.5s",del:"0.7s",c:"✶"},
+      {b:10,l:"55%",s:9,o:0.8,dur:"2.2s",del:"1.0s",c:"★"},
+      {b:5,l:"78%",s:7,o:0.7,dur:"1.9s",del:"0.5s",c:"✦"},
+    ];
+
+    function App() {
+      const [phase, setPhase] = useState(PHASES[1]);
+      const [week, setWeek] = useState("");
+      const [favFoods, setFavFoods] = useState("");
+      const [season, setSeason] = useState(getCurrentSeason());
+      const [useSeason, setUseSeason] = useState(true);
+      const [prepFor, setPrepFor] = useState("both");
+      const [budget, setBudget] = useState("flexible");
+      const [result, setResult] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+      const [activeTab, setActiveTab] = useState(0);
+      const ph = phase;
+
+      const generate = useCallback(async () => {
+        setLoading(true); setError(null); setResult(null); setActiveTab(0);
+        const jonieProtein = 120, joeProtein = 155;
+        const isCouple = prepFor === "both";
+        const totalProtein = isCouple ? jonieProtein+joeProtein : (prepFor==="joe" ? joeProtein : jonieProtein);
+        const servings = isCouple ? "2 people (Jonie + Joe)" : prepFor==="joe" ? "1 person (Joe)" : "1 person (Jonie)";
+
+        const prompt = `You are a cycle-aware sports nutrition and meal prep coach. Generate a complete weekly meal prep plan.
+
+PEOPLE:
+- Jonie: 124 lbs, very active (PT, pole dancing, Pilates, pickleball, strength training). Cycle phase: ${phase.label} (${phase.days}). Protein target: 120g/day. ${phase.desc}
+- Joe: 150 lbs, VERY active (pickleball 2-3x/week + lifting 3x/week). Protein target: 155g/day.
+- Prepping for: ${servings}
+
+PREFERENCES:
+- Plant-forward. Primary proteins: Impossible Meat, Beyond Beef, tofu, tempeh, edamame, lentils, chickpeas, eggs, Greek yogurt, cottage cheese.
+- Avoid heavy meat-forward meals. Occasional eggs/dairy OK.
+- Favorite foods: ${favFoods || "flexible"}
+- Season: ${useSeason ? season : "not specified"}
+- Total daily protein needed: ${totalProtein}g combined
+- Budget: ${budget}
+
+BREAKFAST RULES:
+- NO-COOK assembly bowls only. Everything batch-prepped in advance, scooped in the morning.
+- Max 5 minutes morning effort. Examples: savory oats + roasted veggies + crumbled tofu, Greek yogurt + chia + mango + hemp seeds.
+
+APPLIANCES: Instant Pot, sous vide, air fryer, rice cooker
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "theme": "short evocative title",
+  "phaseNote": "2 sentences on phase nutrition",
+  "proteinSummary": "brief protein target note",
+  "meals": [{"slot":"Breakfast 1","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""}],
+  "snacks": [{"name":"","protein":"Xg","note":"brief"}],
+  "ingredientList": {
+    "proteins": [{"item":"","amount":"","unit":"","purpose":""}],
+    "produce": [{"item":"","amount":"","unit":"","purpose":""}],
+    "pantry": [{"item":"","amount":"","unit":"","purpose":""}],
+    "dairy": [{"item":"","amount":"","unit":"","purpose":""}]
+  },
+  "cookInstructions": {
+    "totalTime": "",
+    "overview": "1-2 sentences",
+    "steps": [{"step":1,"appliance":"","title":"","duration":"","instructions":"2-3 sentences"}],
+    "storageNotes": ""
+  },
+  "remixes": [{"baseBatch":"","variations":[{"name":"","howTo":"1 sentence","vibe":""}]}],
+  "foodSafety": {
+    "fridge": [{"item":"","duration":"","tip":""}],
+    "freezer": [{"item":"","duration":"","tip":""}],
+    "notes": ""
+  },
+  "schedule": {
+    "prepDay": "",
+    "prepTime": "",
+    "reminders": [{"day":"","time":"","task":"","note":""}]
+  }
+}
+
+meals: Breakfast 1, Breakfast 2, Lunch 1, Lunch 2, Dinner 1, Dinner 2. 1 sentence each.
+snacks: 3 only. ingredientList: 4-5 items per category.
+cookInstructions.steps: 5-6 steps, 60-120 min total, parallel steps.
+remixes: 2 base batches, 3 variations each.
+foodSafety: fridge 4-6 items, freezer 3-5 items.
+schedule.reminders: 5-7 across the week.`;
+
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 8000, messages: [{ role:"user", content:prompt }] }),
+          });
+          const data = await response.json();
+          if (data.error) throw new Error(data.error.message);
+          const text = (data.content||[]).map(b => b.text||"").join("");
+          setResult(JSON.parse(text.replace(/```json|```/g,"").trim()));
+        } catch(e) {
+          setError("Something went wrong: " + e.message);
+        } finally {
+          setLoading(false);
+        }
+      }, [phase, week, favFoods, season, useSeason, prepFor, budget]);
+
+      const toggleFood = (food) => {
+        const isTheUsual = food.label.includes("The Usual");
+        const selected = isTheUsual ? food.value.split(", ").every(v => favFoods.includes(v)) : favFoods.includes(food.value);
+        if (isTheUsual) { setFavFoods(selected ? "" : food.value); }
+        else {
+          const cur = favFoods ? favFoods.split(", ").filter(Boolean) : [];
+          setFavFoods(selected ? cur.filter(f => f!==food.value).join(", ") : [...cur, food.value].join(", "));
+        }
+      };
+
+      const downloadICS = () => {
+        const reminders = result.schedule.reminders||[];
+        const today = new Date();
+        const dayMap = {Sunday:0,Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6};
+        const pad = n => String(n).padStart(2,"0");
+        const events = reminders.map((r,idx) => {
+          const diff = ((dayMap[r.day]??0)-today.getDay()+7)%7;
+          const d = new Date(today); d.setDate(today.getDate()+diff);
+          const [h,m] = (r.time||"10:00 AM").replace(/ AM| PM/,"").split(":");
+          let hour = parseInt(h);
+          if ((r.time||"").includes("PM") && hour!==12) hour+=12;
+          d.setHours(hour,parseInt(m||0),0);
+          const e = new Date(d.getTime()+30*60000);
+          const fmt = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+          return ["BEGIN:VEVENT",`UID:mpo-${idx}-${Date.now()}@oracle`,`DTSTART:${fmt(d)}`,`DTEND:${fmt(e)}`,
+            `SUMMARY:🥗 ${r.task}`,`DESCRIPTION:${r.note||"Meal Prep Oracle"}`,
+            "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY",`DESCRIPTION:${r.task}`,"END:VALARM","END:VEVENT"].join("\r\n");
+        });
+        const ics = ["BEGIN:VCALENDAR","VERSION:2.0","CALSCALE:GREGORIAN",...events,"END:VCALENDAR"].join("\r\n");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
+        a.download = "meal-prep-reminders.ics"; a.click();
+      };
+
+      return (
+        <div style={{minHeight:"100vh",background:ph.bg,fontFamily:"'Palatino Linotype',Palatino,Georgia,serif",transition:"background 0.5s",paddingBottom:60}}>
+
+          {/* HEADER */}
+          <div style={{position:"relative",background:`linear-gradient(150deg,${ph.color} 0%,${ph.accent} 100%)`,color:"#fff",padding:"20px 24px 18px",textAlign:"center",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:-20,left:-20,width:90,height:90,borderRadius:"50%",background:"rgba(255,255,255,0.07)"}}/>
+            <div style={{position:"absolute",bottom:-15,right:-15,width:70,height:70,borderRadius:"50%",background:"rgba(255,255,255,0.07)"}}/>
+            {STARS.map((s,i)=>(
+              <span key={i} className="star" style={{"--dur":s.dur,"--del":s.del,top:s.t,bottom:s.b,left:s.l,fontSize:s.s,opacity:s.o}}>{s.c}</span>
+            ))}
+            <p style={{position:"relative",margin:"0 0 3px",fontFamily:"'Dancing Script',cursive",fontSize:13,fontWeight:700,opacity:0.9,letterSpacing:1}}>✦ meal prep oracle ✦</p>
+            <h1 style={{position:"relative",margin:"0 0 2px",fontSize:28,fontWeight:400,letterSpacing:2,fontFamily:"Impact,'Arial Narrow',sans-serif",textTransform:"uppercase",textShadow:"0 1px 8px rgba(0,0,0,0.15)"}}>
+              {ph.emoji} {ph.label} Week {ph.emoji}
+            </h1>
+            <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",margin:"4px 0 3px"}}>
+              <span style={{opacity:0.4,fontSize:8,letterSpacing:4}}>✦ ✦ ✦ ✦ ✦</span>
+            </div>
+            <p style={{position:"relative",margin:0,fontFamily:"'Dancing Script',cursive",fontSize:13,opacity:0.88}}>{ph.desc}</p>
+          </div>
+
+          {/* FORM */}
+          <div style={{maxWidth:680,margin:"0 auto",padding:"24px 16px 0"}}>
+
+            <Sect label="Cycle Phase">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {PHASES.map(p=>(
+                  <button key={p.id} onClick={()=>setPhase(p)} style={{padding:"10px 12px",borderRadius:10,textAlign:"left",transition:"all 0.2s",border:`2px solid ${phase.id===p.id?p.color:"#e0ddd8"}`,background:phase.id===p.id?p.bg:"#fafaf8",boxShadow:phase.id===p.id?`0 2px 12px ${p.color}25`:"none"}}>
+                    <span style={{fontSize:16}}>{p.emoji}</span>
+                    <span style={{fontWeight:900,fontSize:15,color:p.color,marginLeft:6,fontFamily:"'Playfair Display',Georgia,serif",fontStyle:"italic"}}>{p.label}</span>
+                    <div style={{fontSize:10,color:"#aaa",fontFamily:"sans-serif",marginTop:1}}>{p.days}</div>
+                  </button>
+                ))}
+              </div>
+            </Sect>
+
+            <Sect label="Prepping for">
+              <div style={{display:"flex",gap:8}}>
+                {[["both","👫 Both of us"],["jonie","🙋‍♀️ Just me"],["joe","🙋 Just Joe"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setPrepFor(v)} style={{flex:1,padding:"10px 6px",borderRadius:10,fontSize:12,fontFamily:"sans-serif",border:`2px solid ${prepFor===v?ph.color:"#e0ddd8"}`,background:prepFor===v?ph.color+"15":"#fafaf8",color:prepFor===v?ph.color:"#666",transition:"all 0.2s",fontWeight:prepFor===v?700:400}}>{l}</button>
+                ))}
+              </div>
+            </Sect>
+
+            <Sect label="Week context">
+              <input value={week} onChange={e=>setWeek(e.target.value)} placeholder="e.g. heavy training week, boot camp prep, low energy..." style={{width:"100%",padding:"11px 14px",borderRadius:10,border:"1.5px solid #e0ddd8",fontSize:14,fontFamily:"Palatino,Georgia,serif",color:"#333",background:"#fafaf8"}}/>
+            </Sect>
+
+            <Sect label="Favorite foods or must-haves">
+              <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                {FOODS.map(food=>{
+                  const isTheUsual=food.label.includes("The Usual");
+                  const selected=isTheUsual?food.value.split(", ").every(v=>favFoods.includes(v)):favFoods.includes(food.value);
+                  return <button key={food.value} onClick={()=>toggleFood(food)} style={{padding:isTheUsual?"7px 14px":"6px 12px",borderRadius:20,fontFamily:"sans-serif",border:`2px solid ${selected?ph.color:"#e0ddd8"}`,background:selected?ph.color:"#fafaf8",color:selected?"#fff":"#555",fontSize:isTheUsual?13:12,fontWeight:selected?700:500,transition:"all 0.15s",boxShadow:selected?`0 2px 10px ${ph.color}35`:"none"}}>{food.label}</button>;
+                })}
+              </div>
+              {favFoods&&<p style={{margin:"10px 0 0",fontSize:11,color:ph.accent,fontFamily:"sans-serif",fontStyle:"italic"}}>Selected: {favFoods}</p>}
+            </Sect>
+
+            <Sect label="Season">
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#666",fontFamily:"sans-serif",cursor:"pointer"}}>
+                  <input type="checkbox" checked={useSeason} onChange={e=>setUseSeason(e.target.checked)} style={{accentColor:ph.accent}}/>
+                  Use seasonal produce
+                </label>
+                {useSeason&&SEASONS.map(s=>(
+                  <button key={s} onClick={()=>setSeason(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:12,fontFamily:"sans-serif",border:`1.5px solid ${season===s?ph.accent:"#e0ddd8"}`,background:season===s?ph.accent+"18":"#fafaf8",color:season===s?ph.color:"#888",transition:"all 0.15s"}}>{s}</button>
+                ))}
+              </div>
+            </Sect>
+
+            <Sect label="Weekly grocery budget">
+              <div style={{display:"flex",gap:8}}>
+                {[["budget","💰 Under $75","Affordable staples"],["moderate","💵 $75–$125","Quality & cost"],["flexible","✨ No limit","Best nutrition"]].map(([v,l,sub])=>(
+                  <button key={v} onClick={()=>setBudget(v)} style={{flex:1,padding:"10px 8px",borderRadius:10,textAlign:"center",fontFamily:"sans-serif",border:`2px solid ${budget===v?ph.color:"#e0ddd8"}`,background:budget===v?ph.color+"15":"#fafaf8",color:budget===v?ph.color:"#666",transition:"all 0.2s"}}>
+                    <div style={{fontSize:13,fontWeight:budget===v?700:500}}>{l}</div>
+                    <div style={{fontSize:10,color:budget===v?ph.accent:"#aaa",marginTop:2}}>{sub}</div>
+                  </button>
+                ))}
+              </div>
+            </Sect>
+
+            <div style={{background:ph.color+"12",borderRadius:10,padding:"10px 16px",marginBottom:20,border:`1px solid ${ph.color}20`,fontFamily:"sans-serif"}}>
+              <p style={{margin:0,fontSize:12,color:ph.color}}>
+                <strong>Protein targets:</strong>&nbsp;
+                {prepFor!=="joe"&&<span>Jonie 120g/day</span>}
+                {prepFor==="both"&&<span> · </span>}
+                {prepFor!=="jonie"&&<span>Joe 155g/day</span>}
+                {prepFor==="both"&&<span> · <strong>275g combined/day</strong></span>}
+                &nbsp;· Plant-forward · Impossible/Beyond anchors
+              </p>
+            </div>
+
+            <button onClick={generate} disabled={loading} style={{width:"100%",padding:"16px",borderRadius:12,border:"none",background:loading?"#ccc":ph.color,color:"#fff",fontSize:16,fontFamily:"Palatino,Georgia,serif",fontStyle:"italic",letterSpacing:0.3,transition:"all 0.2s",boxShadow:loading?"none":`0 4px 24px ${ph.color}45`}}>
+              {loading?"Building your full prep plan ✨":result?"↺ Refresh Plan":"Generate Full Meal Prep Plan →"}
+            </button>
+
+            {error&&<p style={{textAlign:"center",color:"#c0392b",fontFamily:"sans-serif",fontSize:13,marginTop:10}}>{error}</p>}
+
+            {result&&(
+              <div style={{marginTop:32}} className="fade-up">
+                <div style={{textAlign:"center",padding:"20px",background:"#fff",borderRadius:14,border:`1.5px solid ${ph.accent}30`,marginBottom:20,boxShadow:`0 2px 20px ${ph.color}10`}}>
+                  <p style={{margin:"0 0 4px",fontSize:10,letterSpacing:3,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>This Week's Theme</p>
+                  <h2 style={{margin:"0 0 8px",fontSize:24,color:ph.color,fontWeight:400}}>{result.theme}</h2>
+                  <p style={{margin:"0 0 6px",fontSize:13,color:"#555",fontStyle:"italic",lineHeight:1.6}}>{result.phaseNote}</p>
+                  <p style={{margin:0,fontSize:12,color:ph.accent,fontFamily:"sans-serif"}}>💪 {result.proteinSummary}</p>
+                </div>
+
+                <div style={{display:"flex",gap:4,marginBottom:16,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
+                  {TABS.map((tab,i)=>(
+                    <button key={i} onClick={()=>setActiveTab(i)} style={{padding:"8px 12px",borderRadius:20,whiteSpace:"nowrap",border:`1.5px solid ${activeTab===i?ph.color:"#e0ddd8"}`,background:activeTab===i?ph.color:"#fafaf8",color:activeTab===i?"#fff":"#666",fontSize:12,fontFamily:"sans-serif",fontWeight:activeTab===i?700:400,transition:"all 0.15s"}}>{tab}</button>
+                  ))}
+                </div>
+
+                {activeTab===0&&(
+                  <div className="fade-up">
+                    {(result.meals||[]).map((m,i)=>(
+                      <div key={i} style={{background:"#fff",borderRadius:12,padding:"14px 16px",border:`1.5px solid ${ph.accent}25`,marginBottom:10,boxShadow:`0 1px 8px ${ph.color}08`}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                          <div style={{flex:1}}>
+                            <p style={{margin:"0 0 2px",fontSize:10,letterSpacing:2,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>{m.slot}</p>
+                            <p style={{margin:"0 0 4px",fontSize:15,color:ph.color,fontWeight:700}}>{m.name}</p>
+                            <p style={{margin:0,fontSize:13,color:"#555",lineHeight:1.5}}>{m.description}</p>
+                            <p style={{margin:"5px 0 0",fontSize:11,color:"#aaa",fontFamily:"sans-serif"}}>✦ {m.highlight}</p>
+                          </div>
+                          <span style={{background:ph.accent+"18",color:ph.color,padding:"4px 10px",borderRadius:20,fontSize:12,fontFamily:"sans-serif",fontWeight:700,whiteSpace:"nowrap",marginLeft:10}}>{m.proteinPer}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {result.snacks&&(
+                      <div style={{marginTop:16}}>
+                        <p style={{margin:"0 0 10px",fontSize:10,letterSpacing:2.5,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>🫙 Snacks</p>
+                        {result.snacks.map((s,i)=>(
+                          <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px 14px",border:`1px solid ${ph.accent}20`,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                            <div><span style={{fontSize:13,color:"#333",fontWeight:600}}>{s.name}</span><span style={{fontSize:12,color:"#888",fontFamily:"sans-serif",marginLeft:8}}>{s.note}</span></div>
+                            <span style={{fontSize:12,color:ph.accent,fontFamily:"sans-serif",fontWeight:700}}>{s.protein}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab===1&&result.ingredientList&&(
+                  <div className="fade-up">
+                    {Object.entries(result.ingredientList).map(([cat,items])=>items&&items.length>0&&(
+                      <div key={cat} style={{marginBottom:18}}>
+                        <p style={{margin:"0 0 8px",fontSize:11,letterSpacing:2.5,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>{catLabel[cat]||cat}</p>
+                        <div style={{background:"#fff",borderRadius:12,border:`1.5px solid ${ph.accent}25`,overflow:"hidden"}}>
+                          {items.map((item,i)=>(
+                            <div key={i} style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"center",borderBottom:i<items.length-1?`1px solid ${ph.accent}15`:"none"}}>
+                              <div><span style={{fontSize:14,color:"#333",fontWeight:600}}>{item.item}</span><span style={{fontSize:12,color:"#999",fontFamily:"sans-serif",marginLeft:8,fontStyle:"italic"}}>{item.purpose}</span></div>
+                              <span style={{background:ph.accent+"18",color:ph.color,padding:"3px 10px",borderRadius:20,fontSize:12,fontFamily:"sans-serif",fontWeight:700,whiteSpace:"nowrap"}}>{item.amount} {item.unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab===2&&result.cookInstructions&&(
+                  <div className="fade-up">
+                    <div style={{background:"#fff",borderRadius:12,padding:"16px 18px",border:`1.5px solid ${ph.accent}25`,marginBottom:16}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                        <p style={{margin:0,fontSize:10,letterSpacing:2,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>Session Overview</p>
+                        <span style={{background:ph.color,color:"#fff",padding:"3px 10px",borderRadius:20,fontSize:12,fontFamily:"sans-serif",fontWeight:700}}>⏱ {result.cookInstructions.totalTime}</span>
+                      </div>
+                      <p style={{margin:0,fontSize:13,color:"#555",lineHeight:1.6,fontStyle:"italic"}}>{result.cookInstructions.overview}</p>
+                    </div>
+                    {(result.cookInstructions.steps||[]).map((step,i)=>(
+                      <div key={i} style={{background:"#fff",borderRadius:12,padding:"16px 18px",border:`1.5px solid ${ph.accent}25`,display:"flex",gap:14,marginBottom:10}}>
+                        <div style={{flexShrink:0,width:36,height:36,borderRadius:"50%",background:ph.color,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,fontFamily:"sans-serif"}}>{step.step}</div>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,flexWrap:"wrap",gap:4}}>
+                            <div><span style={{fontSize:14,fontWeight:700,color:ph.color}}>{step.title}</span><span style={{fontSize:11,color:ph.accent,fontFamily:"sans-serif",marginLeft:8,background:ph.accent+"15",padding:"2px 8px",borderRadius:10}}>{step.appliance}</span></div>
+                            <span style={{fontSize:11,color:"#aaa",fontFamily:"sans-serif"}}>⏱ {step.duration}</span>
+                          </div>
+                          <p style={{margin:0,fontSize:13,color:"#444",lineHeight:1.65}}>{step.instructions}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {result.cookInstructions.storageNotes&&(
+                      <div style={{background:ph.accent+"12",borderRadius:10,padding:"12px 16px",border:`1px solid ${ph.accent}30`}}>
+                        <p style={{margin:"0 0 4px",fontSize:10,letterSpacing:2,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>📦 Storage</p>
+                        <p style={{margin:0,fontSize:13,color:"#444",lineHeight:1.6}}>{result.cookInstructions.storageNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab===3&&result.remixes&&(
+                  <div className="fade-up" style={{display:"flex",flexDirection:"column",gap:20}}>
+                    {result.remixes.map((remix,i)=>(
+                      <div key={i}>
+                        <p style={{margin:"0 0 10px",fontSize:13,fontWeight:700,color:ph.color}}>🫙 Starting from: <em>{remix.baseBatch}</em></p>
+                        {(remix.variations||[]).map((v,j)=>(
+                          <div key={j} style={{background:"#fff",borderRadius:12,padding:"14px 16px",border:`1.5px solid ${ph.accent}25`,marginBottom:8}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                              <span style={{fontSize:14,fontWeight:700,color:"#333"}}>{v.name}</span>
+                              <span style={{background:ph.accent+"18",color:ph.accent,padding:"2px 9px",borderRadius:20,fontSize:11,fontFamily:"sans-serif",fontWeight:700,whiteSpace:"nowrap",marginLeft:8}}>{v.vibe}</span>
+                            </div>
+                            <p style={{margin:"5px 0 0",fontSize:13,color:"#555",lineHeight:1.55}}>{v.howTo}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab===4&&result.foodSafety&&(
+                  <div className="fade-up">
+                    <p style={{margin:"0 0 8px",fontSize:11,letterSpacing:2.5,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>🌡 Keep in Fridge</p>
+                    <div style={{background:"#fff",borderRadius:12,border:`1.5px solid ${ph.accent}25`,overflow:"hidden",marginBottom:16}}>
+                      {(result.foodSafety.fridge||[]).map((item,i)=>(
+                        <div key={i} style={{padding:"11px 16px",display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"center",borderBottom:i<result.foodSafety.fridge.length-1?`1px solid ${ph.accent}15`:"none"}}>
+                          <div><span style={{fontSize:14,fontWeight:600,color:"#333"}}>{item.item}</span><span style={{fontSize:12,color:"#999",fontFamily:"sans-serif",marginLeft:8,fontStyle:"italic"}}>{item.tip}</span></div>
+                          <span style={{background:"#e8f5e9",color:"#2e7d32",padding:"3px 10px",borderRadius:20,fontSize:12,fontFamily:"sans-serif",fontWeight:700,whiteSpace:"nowrap"}}>{item.duration}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{margin:"0 0 8px",fontSize:11,letterSpacing:2.5,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>🧊 Freeze It</p>
+                    <div style={{background:"#fff",borderRadius:12,border:`1.5px solid ${ph.accent}25`,overflow:"hidden",marginBottom:16}}>
+                      {(result.foodSafety.freezer||[]).map((item,i)=>(
+                        <div key={i} style={{padding:"11px 16px",display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"center",borderBottom:i<result.foodSafety.freezer.length-1?`1px solid ${ph.accent}15`:"none"}}>
+                          <div><span style={{fontSize:14,fontWeight:600,color:"#333"}}>{item.item}</span><span style={{fontSize:12,color:"#999",fontFamily:"sans-serif",marginLeft:8,fontStyle:"italic"}}>{item.tip}</span></div>
+                          <span style={{background:"#e3f2fd",color:"#1565c0",padding:"3px 10px",borderRadius:20,fontSize:12,fontFamily:"sans-serif",fontWeight:700,whiteSpace:"nowrap"}}>{item.duration}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {result.foodSafety.notes&&(
+                      <div style={{background:ph.accent+"12",borderRadius:10,padding:"12px 16px",border:`1px solid ${ph.accent}30`}}>
+                        <p style={{margin:"0 0 4px",fontSize:10,letterSpacing:2,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>⚠️ Good to know</p>
+                        <p style={{margin:0,fontSize:13,color:"#444",lineHeight:1.6}}>{result.foodSafety.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab===5&&result.schedule&&(
+                  <div className="fade-up">
+                    <div style={{background:ph.color,borderRadius:12,padding:"16px 18px",marginBottom:16,color:"#fff"}}>
+                      <p style={{margin:"0 0 4px",fontSize:11,letterSpacing:2,opacity:0.8,fontFamily:"sans-serif",textTransform:"uppercase"}}>Main Prep Session</p>
+                      <p style={{margin:0,fontSize:20,fontFamily:"Impact,sans-serif",letterSpacing:1}}>{result.schedule.prepDay} @ {result.schedule.prepTime}</p>
+                    </div>
+                    {(result.schedule.reminders||[]).map((r,i)=>(
+                      <div key={i} style={{background:"#fff",borderRadius:11,padding:"12px 16px",border:`1.5px solid ${ph.accent}25`,display:"flex",gap:14,alignItems:"center",marginBottom:8}}>
+                        <div style={{flexShrink:0,textAlign:"center",minWidth:52}}>
+                          <div style={{fontSize:10,color:ph.accent,fontFamily:"sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{r.day}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:ph.color,fontFamily:"sans-serif"}}>{r.time}</div>
+                        </div>
+                        <div style={{width:1,height:32,background:ph.accent+"30"}}/>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:600,color:"#333"}}>{r.task}</div>
+                          {r.note&&<div style={{fontSize:12,color:"#888",fontFamily:"sans-serif",marginTop:2,fontStyle:"italic"}}>{r.note}</div>}
+                        </div>
+                        <span style={{fontSize:16}}>🔔</span>
+                      </div>
+                    ))}
+                    <div style={{background:"#fff",borderRadius:12,padding:"18px",border:`1.5px solid ${ph.accent}25`,textAlign:"center",marginTop:8}}>
+                      <p style={{margin:"0 0 6px",fontSize:11,letterSpacing:2,color:ph.accent,fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>📲 Add to Your Phone</p>
+                      <p style={{margin:"0 0 14px",fontSize:13,color:"#666",fontStyle:"italic"}}>Download .ics to import into Apple Calendar or Google Calendar</p>
+                      <button onClick={downloadICS} style={{padding:"12px 28px",borderRadius:10,border:"none",background:ph.color,color:"#fff",fontSize:14,fontFamily:"Impact,sans-serif",letterSpacing:1,boxShadow:`0 3px 16px ${ph.color}40`,textTransform:"uppercase"}}>⬇ Download Reminders</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function Sect({label,children}) {
+      return (
+        <div style={{marginBottom:20}}>
+          <p style={{margin:"0 0 8px",fontSize:10,letterSpacing:2.5,color:"#aaa",fontFamily:"sans-serif",textTransform:"uppercase",fontWeight:700}}>{label}</p>
+          {children}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
