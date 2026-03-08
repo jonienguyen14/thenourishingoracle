@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Prep Oracle" />
+  <title>✦ Meal Prep Oracle ✦</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Josefin+Sans:wght@300;400;600&family=Dancing+Script:wght@600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --lavender: #C9E8FC;
+      --wisteria: #CFABD7;
+      --rose: #B1768A;
+      --gold: #FEEC96;
+      --blush: #FEE9E8;
+      --sky: #a8d8f0;
+      --deep: #7B5EA7;
+      --soft-white: #faf8ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      background: var(--soft-white);
+      font-family: 'Josefin Sans', sans-serif;
+      -webkit-text-size-adjust: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Holographic mesh background */
+    .holo-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(201,232,252,0.55) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(207,171,215,0.45) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 50% 85%, rgba(177,118,138,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 90% 70%, rgba(254,236,150,0.2) 0%, transparent 50%),
+        linear-gradient(160deg, #f0eeff 0%, #fdf8ff 40%, #eef6ff 70%, #fff8fb 100%);
+      animation: holoPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes holoPulse {
+      0%   { opacity: 1; filter: hue-rotate(0deg); }
+      50%  { opacity: 0.9; filter: hue-rotate(8deg); }
+      100% { opacity: 1; filter: hue-rotate(-5deg); }
+    }
+
+    .app-wrap { position: relative; z-index: 1; min-height: 100vh; padding-bottom: 60px; }
+
+    /* Celestial SVG noise/grain overlay */
+    .grain { position: fixed; inset: 0; z-index: 0; opacity: 0.025; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+    @keyframes sparkle  { 0%,100% { opacity:1; transform:scale(1) rotate(0deg); } 50% { opacity:0.3; transform:scale(0.6) rotate(180deg); } }
+    @keyframes floatY   { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes shimmer  { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+    @keyframes orb      { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(8px,-5px) scale(1.03);} 66%{transform:translate(-5px,4px) scale(0.97);} }
+
+    .fade-up { animation: fadeUp 0.45s cubic-bezier(.22,.68,0,1.2) both; }
+    .fade-in { animation: fadeIn 0.3s ease both; }
+
+    /* Card base */
+    .card {
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(207,171,215,0.3);
+      border-radius: 18px;
+      box-shadow: 0 2px 24px rgba(123,94,167,0.08), 0 1px 4px rgba(123,94,167,0.05);
+    }
+    .card-glow {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(207,171,215,0.4);
+      border-radius: 20px;
+      box-shadow: 0 4px 32px rgba(123,94,167,0.12), 0 0 0 0.5px rgba(207,171,215,0.3);
+    }
+
+    /* Phase button */
+    .phase-btn {
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: left;
+      transition: all 0.25s cubic-bezier(.22,.68,0,1.2);
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .phase-btn:active { transform: scale(0.97); }
+
+    /* Pill toggle */
+    .pill {
+      padding: 9px 14px;
+      border-radius: 40px;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+      border: 1.5px solid transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+      background: rgba(255,255,255,0.6);
+    }
+
+    /* Chip */
+    .chip {
+      padding: 6px 13px;
+      border-radius: 30px;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      border: 1.5px solid rgba(207,171,215,0.5);
+      background: rgba(255,255,255,0.6);
+      color: #9b7faa;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip.active {
+      background: linear-gradient(135deg, var(--wisteria), var(--rose));
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 2px 12px rgba(177,118,138,0.35);
+    }
+
+    /* Input */
+    .inp {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(207,171,215,0.4);
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(8px);
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 13px;
+      color: #5a3e6e;
+      letter-spacing: 0.3px;
+      transition: border-color 0.2s;
+    }
+    .inp:focus { outline: none; border-color: var(--wisteria); box-shadow: 0 0 0 3px rgba(207,171,215,0.15); }
+    .inp::placeholder { color: #c4aed0; }
+
+    /* Generate button */
+    .gen-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .gen-btn:not(:disabled) {
+      background: linear-gradient(135deg, #c9a8d8 0%, #a8c8e8 50%, #d4a8c8 100%);
+      background-size: 200% auto;
+      color: white;
+      box-shadow: 0 4px 24px rgba(169,136,200,0.4);
+      animation: shimmer 3s linear infinite;
+    }
+    .gen-btn:not(:disabled):active { transform: scale(0.98); }
+    .gen-btn:disabled { background: rgba(207,171,215,0.3); color: #c4aed0; cursor: not-allowed; }
+
+    /* Tabs */
+    .tab-btn {
+      padding: 8px 14px;
+      border-radius: 30px;
+      white-space: nowrap;
+      border: 1.5px solid rgba(207,171,215,0.4);
+      background: rgba(255,255,255,0.6);
+      color: #b09abc;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--wisteria) 0%, var(--sky) 100%);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 2px 14px rgba(169,136,200,0.4);
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    button { -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { height: 3px; width: 3px; }
+    ::-webkit-scrollbar-thumb { background: rgba(207,171,215,0.5); border-radius: 3px; }
+
+    .label {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #c4aed0;
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+
+    /* Celestial decorative SVG stars */
+    .deco-star { position: absolute; pointer-events: none; animation: sparkle var(--dur,3s) ease-in-out infinite; animation-delay: var(--del,0s); opacity: var(--op,0.6); }
+
+    /* Section divider */
+    .divider {
+      display: flex; align-items: center; gap: 10px; margin: 4px 0 16px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(207,171,215,0.4), transparent);
+    }
+  </style>
+</head>
+<body>
+  <div class="holo-bg"></div>
+  <div class="grain"></div>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useCallback, useEffect } = React;
+
+    const PHASES = [
+      { id:"menstrual",  label:"Menstrual",  emoji:"🌑", days:"Days 1–5",
+        grad:"linear-gradient(135deg,#e8b4b8,#d4849a)", color:"#c06880", accent:"#e8b4b8",
+        bg:"rgba(232,180,184,0.15)", desc:"Rest & restore · Iron-rich · Warm" },
+      { id:"follicular", label:"Follicular", emoji:"🌱", days:"Days 6–13",
+        grad:"linear-gradient(135deg,#b4d4e8,#84a8d4)", color:"#5a8ab8", accent:"#a8ccf0",
+        bg:"rgba(180,212,232,0.15)", desc:"Rising energy · Fresh · Light" },
+      { id:"ovulatory",  label:"Ovulatory",  emoji:"🌕", days:"Days 14–16",
+        grad:"linear-gradient(135deg,#f0d890,#e8b86c)", color:"#c49030", accent:"#f0d890",
+        bg:"rgba(240,216,144,0.15)", desc:"Peak power · Vibrant · Anti-inflammatory" },
+      { id:"luteal",     label:"Luteal",     emoji:"🌘", days:"Days 17–28",
+        grad:"linear-gradient(135deg,#c4a8d8,#9878b8)", color:"#7B5EA7", accent:"#c4a8d8",
+        bg:"rgba(196,168,216,0.15)", desc:"Slow down · Comforting · Magnesium-rich" },
+    ];
+
+    const SEASONS = ["🌸 Spring","☀️ Summer","🍂 Fall","❄️ Winter"];
+    const TABS = ["🍽","🛒","👩‍🍳","🔄","🧊","📅"];
+    const TAB_LABELS = ["Meals","Shop","Cook","Remix","Safety","Schedule"];
+
+    function getCurrentSeason() {
+      const m = new Date().getMonth();
+      if (m>=2&&m<=4) return "🌸 Spring";
+      if (m>=5&&m<=7) return "☀️ Summer";
+      if (m>=8&&m<=10) return "🍂 Fall";
+      return "❄️ Winter";
+    }
+
+    const FOODS = [
+      { label:"⭐ The Usual", value:"mango, broccoli, sweet potato, Beyond Meat, Greek yogurt, chia seeds, eggs" },
+      { label:"🥭 Mango", value:"mango" },
+      { label:"🥦 Broccoli", value:"broccoli" },
+      { label:"🍠 Sweet Potato", value:"sweet potato" },
+      { label:"🌱 Beyond Meat", value:"Beyond Meat" },
+      { label:"🫙 Greek Yogurt", value:"Greek yogurt" },
+      { label:"🌑 Chia Seeds", value:"chia seeds" },
+      { label:"🥚 Eggs", value:"eggs" },
+      { label:"🍋 Tofu", value:"tofu" },
+      { label:"🌾 Quinoa", value:"quinoa" },
+      { label:"🥑 Avocado", value:"avocado" },
+      { label:"🍓 Berries", value:"berries" },
+      { label:"🫘 Edamame", value:"edamame" },
+      { label:"🥬 Spinach", value:"spinach" },
+      { label:"🌿 Tempeh", value:"tempeh" },
+      { label:"🌶 Kimchi", value:"kimchi" },
+      { label:"🥜 Almond Butter", value:"almond butter" },
+    ];
+
+    const catLabel = { proteins:"💪 Proteins", produce:"🥦 Produce", pantry:"🫙 Pantry", dairy:"🥛 Dairy" };
+
+    const RECIPIENTS = "jonie.nguyen14@gmail.com,pianowithjoe@gmail.com";
+
+    // Celestial SVG deco elements
+    const CelestialDeco = () => (
+      <svg width="100%" height="100%" style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}} xmlns="http://www.w3.org/2000/svg">
+        {/* 4-pointed stars */}
+        {[{x:"8%",y:"12%",s:10,op:0.4,dur:"2.8s",del:"0s"},{x:"88%",y:"8%",s:7,op:0.35,dur:"3.5s",del:"0.7s"},{x:"15%",y:"72%",s:6,op:0.3,dur:"2.2s",del:"1.2s"},{x:"92%",y:"65%",s:8,op:0.4,dur:"3.1s",del:"0.4s"},{x:"50%",y:"4%",s:5,op:0.3,dur:"4s",del:"1.8s"},{x:"75%",y:"88%",s:7,op:0.35,dur:"2.6s",del:"0.9s"}].map((s,i)=>(
+          <g key={i} style={{transformOrigin:`${s.x} ${s.y}`,animation:`sparkle ${s.dur} ease-in-out infinite`,animationDelay:s.del,opacity:s.op}}>
+            <path d={`M ${s.x} ${parseFloat(s.x)*0+s.y.replace('%','')}% v0`} fill="none"/>
+          </g>
+        ))}
+      </svg>
+    );
+
+    const StarDot = ({style}) => (
+      <svg width="12" height="12" viewBox="0 0 12 12" style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 0L6.8 5.2L12 6L6.8 6.8L6 12L5.2 6.8L0 6L5.2 5.2Z" fill="currentColor"/>
+      </svg>
+    );
+
+    const SunLineArt = ({size=40, color="rgba(207,171,215,0.6)"}) => (
+      <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="8" stroke={color} strokeWidth="1"/>
+        <path d="M20 4v4M20 32v4M4 20h4M32 20h4M7.5 7.5l2.8 2.8M29.7 29.7l2.8 2.8M29.7 7.5l-2.8 2.8M7.5 29.7l2.8 2.8" stroke={color} strokeWidth="1" strokeLinecap="round"/>
+        <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="0.5" strokeDasharray="2 3"/>
+        <path d="M20 10 Q22 14 20 16 Q18 14 20 10Z M20 30 Q22 26 20 24 Q18 26 20 30Z M10 20 Q14 22 16 20 Q14 18 10 20Z M30 20 Q26 22 24 20 Q26 18 30 20Z" fill={color} opacity="0.5"/>
+      </svg>
+    );
+
+    const MoonLineArt = ({size=24, color="rgba(207,171,215,0.5)"}) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke={color} strokeWidth="1" strokeLinecap="round"/>
+      </svg>
+    );
+
+    function App() {
+      const [phase, setPhase] = useState(PHASES[1]);
+      const [week, setWeek] = useState("");
+      const [favFoods, setFavFoods] = useState("");
+      const [customFood, setCustomFood] = useState("");
+      const [season, setSeason] = useState(getCurrentSeason());
+      const [useSeason, setUseSeason] = useState(true);
+      const [prepFor, setPrepFor] = useState("both");
+      const [budgetMin, setBudgetMin] = useState("");
+      const [budgetMax, setBudgetMax] = useState("");
+      const [result, setResult] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+      const [activeTab, setActiveTab] = useState(0);
+      const [emailSent, setEmailSent] = useState(false);
+      const ph = phase;
+
+      const budgetLabel = () => {
+        if (budgetMin && budgetMax) return `$${budgetMin}–$${budgetMax}/week`;
+        if (budgetMin) return `$${budgetMin}+/week`;
+        if (budgetMax) return `up to $${budgetMax}/week`;
+        return "flexible";
+      };
+      const allFoods = () => [favFoods, customFood].filter(Boolean).join(", ") || "flexible";
+
+      const buildEmailBody = (r) => {
+        if (!r) return "";
+        let body = `✦ MEAL PREP ORACLE — ${phase.label.toUpperCase()} WEEK ✦\n\nTheme: ${r.theme}\n${r.phaseNote}\nProtein: ${r.proteinSummary}\n\n`;
+        body += `━━━ MEALS ━━━\n`;
+        (r.meals||[]).forEach(m => { body += `\n${m.slot}: ${m.name}\n${m.description}\n${m.proteinPer} · ${m.highlight}\n`; });
+        body += `\n━━━ SNACKS ━━━\n`;
+        (r.snacks||[]).forEach(s => { body += `• ${s.name} (${s.protein}) — ${s.note}\n`; });
+        body += `\n━━━ INGREDIENTS ━━━\n`;
+        Object.entries(r.ingredientList||{}).forEach(([cat,items]) => {
+          if (items?.length) { body += `\n${catLabel[cat]||cat}\n`; items.forEach(i => { body += `  • ${i.item} — ${i.amount} ${i.unit} (${i.purpose})\n`; }); }
+        });
+        body += `\n━━━ COOK SESSION ━━━\nTotal: ${r.cookInstructions?.totalTime}\n${r.cookInstructions?.overview}\n\n`;
+        (r.cookInstructions?.steps||[]).forEach(s => { body += `${s.step}. ${s.title} [${s.appliance}] — ${s.duration}\n${s.instructions}\n\n`; });
+        body += `\n━━━ REMIXES ━━━\n`;
+        (r.remixes||[]).forEach(remix => { body += `\n${remix.baseBatch}\n`; (remix.variations||[]).forEach(v => { body += `  • ${v.name} [${v.vibe}]: ${v.howTo}\n`; }); });
+        body += `\n━━━ SAFETY ━━━\nFridge:\n`;
+        (r.foodSafety?.fridge||[]).forEach(i => { body += `  • ${i.item}: ${i.duration} — ${i.tip}\n`; });
+        body += `Freeze:\n`;
+        (r.foodSafety?.freezer||[]).forEach(i => { body += `  • ${i.item}: ${i.duration} — ${i.tip}\n`; });
+        body += `\n━━━ SCHEDULE ━━━\nPrep: ${r.schedule?.prepDay} @ ${r.schedule?.prepTime}\n\n`;
+        (r.schedule?.reminders||[]).forEach(rem => { body += `${rem.day} ${rem.time} — ${rem.task}${rem.note?` (${rem.note})`:""}\n`; });
+        return body;
+      };
+
+      const sendEmail = useCallback((parsed) => {
+        const r = parsed || result;
+        if (!r) return;
+        const subject = encodeURIComponent(`✦ Meal Prep Plan — ${phase.label} Week`);
+        const body = encodeURIComponent(buildEmailBody(r));
+        window.open(`mailto:${RECIPIENTS}?subject=${subject}&body=${body}`);
+        setEmailSent(true);
+      }, [result, phase]);
+
+      const generate = useCallback(async () => {
+        setLoading(true); setError(null); setResult(null); setActiveTab(0);
+        const jonieProtein = 120, joeProtein = 155;
+        const isCouple = prepFor === "both";
+        const totalProtein = isCouple ? jonieProtein+joeProtein : (prepFor==="joe" ? joeProtein : jonieProtein);
+        const servings = isCouple ? "2 people (Jonie + Joe)" : prepFor==="joe" ? "1 person (Joe)" : "1 person (Jonie)";
+
+        const prompt = `You are a cycle-aware sports nutrition and meal prep coach. Generate a complete weekly meal prep plan.
+
+PEOPLE:
+- Jonie: 124 lbs, very active (PT, pole dancing, Pilates, pickleball, strength training). Cycle phase: ${phase.label} (${phase.days}). Protein target: 120g/day. ${phase.desc}
+- Joe: 150 lbs, VERY active (pickleball 2-3x/week + lifting 3x/week). Protein target: 155g/day.
+- Prepping for: ${servings}
+
+PREFERENCES:
+- Plant-forward. Primary proteins: Impossible Meat, Beyond Beef, tofu, tempeh, edamame, lentils, chickpeas, eggs, Greek yogurt, cottage cheese.
+- Favorite foods: ${allFoods()}
+- Season: ${useSeason ? season : "not specified"}
+- Total daily protein needed: ${totalProtein}g combined
+- Budget: ${budgetLabel()}
+
+BREAKFAST RULES: NO-COOK assembly bowls only. Everything batch-prepped in advance. Max 5 min morning effort.
+APPLIANCES: Instant Pot, sous vide, air fryer, rice cooker
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "theme": "short evocative title",
+  "phaseNote": "2 sentences on phase nutrition",
+  "proteinSummary": "brief protein target note",
+  "meals": [{"slot":"Breakfast 1","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""}],
+  "snacks": [{"name":"","protein":"Xg","note":"brief"}],
+  "ingredientList": {
+    "proteins": [{"item":"","amount":"","unit":"","purpose":""}],
+    "produce": [{"item":"","amount":"","unit":"","purpose":""}],
+    "pantry": [{"item":"","amount":"","unit":"","purpose":""}],
+    "dairy": [{"item":"","amount":"","unit":"","purpose":""}]
+  },
+  "cookInstructions": {
+    "totalTime": "",
+    "overview": "1-2 sentences",
+    "steps": [{"step":1,"appliance":"","title":"","duration":"","instructions":"2-3 sentences"}],
+    "storageNotes": ""
+  },
+  "remixes": [{"baseBatch":"","variations":[{"name":"","howTo":"1 sentence","vibe":""}]}],
+  "foodSafety": {
+    "fridge": [{"item":"","duration":"","tip":""}],
+    "freezer": [{"item":"","duration":"","tip":""}],
+    "notes": ""
+  },
+  "schedule": {
+    "prepDay": "",
+    "prepTime": "",
+    "reminders": [{"day":"","time":"","task":"","note":""}]
+  }
+}
+meals: Breakfast 1, Breakfast 2, Lunch 1, Lunch 2, Dinner 1, Dinner 2. snacks: 3 only.
+CRITICAL for ingredientList: Every single ingredient mentioned across ALL meals and snacks MUST appear in the list — no omissions, no extras. Cross-check each meal and snack before finalizing. Group by proteins/produce/pantry/dairy. Include realistic quantities for the number of servings.
+cookInstructions.steps: 5-6 steps 60-120min total. remixes: 2 base batches 3 variations each. foodSafety: fridge 4-6 items, freezer 3-5 items. schedule.reminders: 5-7.`;
+
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 8000, messages: [{ role:"user", content:prompt }] }),
+          });
+          const data = await response.json();
+          if (data.error) throw new Error(data.error.message);
+          const text = (data.content||[]).map(b => b.text||"").join("");
+          const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+          setResult(parsed);
+          setEmailSent(false);
+          setTimeout(() => sendEmail(parsed), 500);
+        } catch(e) {
+          setError("Something went wrong: " + e.message);
+        } finally {
+          setLoading(false);
+        }
+      }, [phase, week, favFoods, customFood, season, useSeason, prepFor, budgetMin, budgetMax]);
+
+      const toggleFood = (food) => {
+        const isTheUsual = food.label.includes("The Usual");
+        const selected = isTheUsual ? food.value.split(", ").every(v => favFoods.includes(v)) : favFoods.includes(food.value);
+        if (isTheUsual) { setFavFoods(selected ? "" : food.value); }
+        else {
+          const cur = favFoods ? favFoods.split(", ").filter(Boolean) : [];
+          setFavFoods(selected ? cur.filter(f => f!==food.value).join(", ") : [...cur, food.value].join(", "));
+        }
+      };
+
+      const downloadICS = () => {
+        const reminders = result.schedule.reminders||[];
+        const today = new Date();
+        const dayMap = {Sunday:0,Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6};
+        const pad = n => String(n).padStart(2,"0");
+        const events = reminders.map((r,idx) => {
+          const diff = ((dayMap[r.day]??0)-today.getDay()+7)%7;
+          const d = new Date(today); d.setDate(today.getDate()+diff);
+          const [h,m] = (r.time||"10:00 AM").replace(/ AM| PM/,"").split(":");
+          let hour = parseInt(h);
+          if ((r.time||"").includes("PM") && hour!==12) hour+=12;
+          d.setHours(hour,parseInt(m||0),0);
+          const e = new Date(d.getTime()+30*60000);
+          const fmt = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+          return ["BEGIN:VEVENT",`UID:mpo-${idx}-${Date.now()}@oracle`,`DTSTART:${fmt(d)}`,`DTEND:${fmt(e)}`,
+            `SUMMARY:🥗 ${r.task}`,`DESCRIPTION:${r.note||"Meal Prep Oracle"}`,
+            "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY",`DESCRIPTION:${r.task}`,"END:VALARM","END:VEVENT"].join("\r\n");
+        });
+        const ics = ["BEGIN:VCALENDAR","VERSION:2.0","CALSCALE:GREGORIAN",...events,"END:VCALENDAR"].join("\r\n");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
+        a.download = "meal-prep-reminders.ics"; a.click();
+      };
+
+      return (
+        <div className="app-wrap">
+
+          {/* ── HEADER ── */}
+          <div style={{position:"relative",overflow:"hidden",padding:"36px 24px 28px",textAlign:"center",
+            background:`linear-gradient(160deg, rgba(201,232,252,0.6) 0%, rgba(207,171,215,0.5) 50%, rgba(177,118,138,0.3) 100%)`,
+            borderBottom:"1px solid rgba(207,171,215,0.25)"}}>
+
+            {/* Floating celestial deco */}
+            <div style={{position:"absolute",top:10,left:"5%",animation:"floatY 4s ease-in-out infinite",animationDelay:"0s"}}>
+              <SunLineArt size={44} color="rgba(207,171,215,0.7)"/>
+            </div>
+            <div style={{position:"absolute",top:16,right:"7%",animation:"floatY 5s ease-in-out infinite",animationDelay:"1.5s"}}>
+              <MoonLineArt size={28} color="rgba(177,118,138,0.6)"/>
+            </div>
+            <div style={{position:"absolute",bottom:12,left:"18%",animation:"floatY 3.5s ease-in-out infinite",animationDelay:"0.8s"}}>
+              <StarDot style={{color:"rgba(177,118,138,0.5)",width:10,height:10}}/>
+            </div>
+            <div style={{position:"absolute",bottom:20,right:"20%",animation:"sparkle 2.5s ease-in-out infinite",animationDelay:"0.3s"}}>
+              <StarDot style={{color:"rgba(207,171,215,0.7)",width:8,height:8}}/>
+            </div>
+            <div style={{position:"absolute",top:"40%",left:"35%",animation:"sparkle 3.8s ease-in-out infinite",animationDelay:"1.2s"}}>
+              <StarDot style={{color:"rgba(254,236,150,0.6)",width:6,height:6}}/>
+            </div>
+
+            <p style={{fontFamily:"'Dancing Script',cursive",fontSize:13,color:"rgba(123,94,167,0.7)",letterSpacing:1,marginBottom:6}}>✦ meal prep oracle ✦</p>
+
+            <div style={{display:"inline-flex",alignItems:"center",gap:10,padding:"8px 20px",borderRadius:40,
+              background:"rgba(255,255,255,0.35)",backdropFilter:"blur(10px)",marginBottom:8,
+              border:"1px solid rgba(207,171,215,0.4)"}}>
+              <span style={{fontSize:20}}>{ph.emoji}</span>
+              <h1 style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:300,
+                color:"#5a3e6e",letterSpacing:3,textTransform:"uppercase"}}>{ph.label}</h1>
+              <span style={{fontSize:20}}>{ph.emoji}</span>
+            </div>
+
+            <div className="divider" style={{maxWidth:180,margin:"8px auto"}}>
+              <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,letterSpacing:3,color:"rgba(123,94,167,0.5)",textTransform:"uppercase"}}>week</span>
+            </div>
+
+            <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontStyle:"italic",
+              color:"rgba(90,62,110,0.7)",letterSpacing:0.5}}>{ph.desc}</p>
+          </div>
+
+          {/* ── FORM ── */}
+          <div style={{maxWidth:680,margin:"0 auto",padding:"28px 16px 0"}}>
+
+            {/* Cycle Phase */}
+            <p className="label">Cycle Phase</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:22}}>
+              {PHASES.map(p=>(
+                <button key={p.id} className="phase-btn" onClick={()=>setPhase(p)}
+                  style={{border:phase.id===p.id?`1.5px solid ${p.color}`:"1.5px solid rgba(207,171,215,0.3)",
+                    background:phase.id===p.id?p.bg:"rgba(255,255,255,0.5)",
+                    boxShadow:phase.id===p.id?`0 4px 20px ${p.accent}40`:"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                    <span style={{fontSize:16}}>{p.emoji}</span>
+                    <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:600,
+                      fontStyle:"italic",color:phase.id===p.id?p.color:"#9b7faa"}}>{p.label}</span>
+                  </div>
+                  <div style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,letterSpacing:1.5,
+                    color:phase.id===p.id?p.color:"#c4aed0",textTransform:"uppercase"}}>{p.days}</div>
+                </button>
+              ))}
+            </div>
+
+            {/* Prepping for */}
+            <p className="label">Prepping for</p>
+            <div style={{display:"flex",gap:8,marginBottom:22}}>
+              {[["both","👫 Both of Us"],["jonie","🙋‍♀️ Just Me"],["joe","🙋 Just Joe"]].map(([v,l])=>(
+                <button key={v} className="pill" onClick={()=>setPrepFor(v)}
+                  style={{flex:1,border:prepFor===v?`1.5px solid ${ph.color}`:"1.5px solid rgba(207,171,215,0.4)",
+                    background:prepFor===v?ph.bg:"rgba(255,255,255,0.5)",
+                    color:prepFor===v?ph.color:"#b09abc",
+                    boxShadow:prepFor===v?`0 2px 14px ${ph.accent}30`:""}}>{l}</button>
+              ))}
+            </div>
+
+            {/* Week context */}
+            <p className="label">This week's energy</p>
+            <input className="inp" value={week} onChange={e=>setWeek(e.target.value)}
+              placeholder="heavy training, boot camp prep, low energy..." style={{marginBottom:22}}/>
+
+            {/* Foods */}
+            <p className="label">Favorites & must-haves</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:10}}>
+              {FOODS.map(food=>{
+                const isTheUsual=food.label.includes("The Usual");
+                const selected=isTheUsual?food.value.split(", ").every(v=>favFoods.includes(v)):favFoods.includes(food.value);
+                return <button key={food.value} className={`chip${selected?" active":""}`} onClick={()=>toggleFood(food)}
+                  style={isTheUsual?{fontWeight:700,fontSize:12}:{}}>{food.label}</button>;
+              })}
+            </div>
+            <input className="inp" value={customFood} onChange={e=>setCustomFood(e.target.value)}
+              placeholder="+ add anything else: tahini, sourdough, açaí..."
+              style={{marginBottom:4,borderStyle:"dashed"}}/>
+            {(favFoods||customFood)&&(
+              <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,color:ph.color,letterSpacing:0.5,
+                marginBottom:16,marginTop:6,fontStyle:"italic"}}>✦ using: {allFoods()}</p>
+            )}
+            {!favFoods&&!customFood&&<div style={{marginBottom:22}}/>}
+
+            {/* Season */}
+            <p className="label">Season</p>
+            <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:22}}>
+              <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#b09abc",cursor:"pointer",letterSpacing:0.5}}>
+                <input type="checkbox" checked={useSeason} onChange={e=>setUseSeason(e.target.checked)}
+                  style={{accentColor:ph.color,width:14,height:14}}/>
+                Seasonal produce
+              </label>
+              {useSeason&&SEASONS.map(s=>(
+                <button key={s} className="pill" onClick={()=>setSeason(s)}
+                  style={{fontSize:11,padding:"6px 12px",border:season===s?`1.5px solid ${ph.color}`:"1.5px solid rgba(207,171,215,0.4)",
+                    background:season===s?ph.bg:"rgba(255,255,255,0.5)",color:season===s?ph.color:"#b09abc"}}>{s}</button>
+              ))}
+            </div>
+
+            {/* Budget */}
+            <p className="label">Weekly grocery budget</p>
+            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:budgetMin||budgetMax?6:22}}>
+              <div style={{flex:1}}>
+                <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,color:"#c4aed0",letterSpacing:1.5,
+                  textTransform:"uppercase",marginBottom:5}}>Min $</p>
+                <input type="number" className="inp" value={budgetMin} onChange={e=>setBudgetMin(e.target.value)} placeholder="50"/>
+              </div>
+              <div style={{paddingTop:20,color:"rgba(207,171,215,0.6)",fontSize:20}}>—</div>
+              <div style={{flex:1}}>
+                <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,color:"#c4aed0",letterSpacing:1.5,
+                  textTransform:"uppercase",marginBottom:5}}>Max $</p>
+                <input type="number" className="inp" value={budgetMax} onChange={e=>setBudgetMax(e.target.value)} placeholder="120"/>
+              </div>
+            </div>
+            {(budgetMin||budgetMax)&&(
+              <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,color:ph.color,letterSpacing:0.5,
+                marginBottom:22,fontStyle:"italic"}}>✦ {budgetLabel()}</p>
+            )}
+
+            {/* Protein reminder */}
+            <div style={{padding:"10px 16px",borderRadius:12,marginBottom:24,
+              background:`linear-gradient(135deg, ${ph.bg}, rgba(255,255,255,0.4))`,
+              border:`1px solid ${ph.accent}40`}}>
+              <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:11,color:ph.color,letterSpacing:0.5}}>
+                <span style={{fontWeight:600}}>protein targets · </span>
+                {prepFor!=="joe"&&<span>jonie 120g </span>}
+                {prepFor==="both"&&<span>· </span>}
+                {prepFor!=="jonie"&&<span>joe 155g </span>}
+                {prepFor==="both"&&<span>· <span style={{fontWeight:600}}>275g combined</span></span>}
+                <span> · plant-forward</span>
+              </p>
+            </div>
+
+            {/* Generate */}
+            <button className="gen-btn" onClick={generate} disabled={loading}>
+              {loading ? "✦  conjuring your plan  ✦" : result ? "✦  conjure again  ✦" : "✦  conjure my meal plan  ✦"}
+            </button>
+
+            {loading && (
+              <div style={{textAlign:"center",marginTop:20,animation:"floatY 1.5s ease-in-out infinite"}}>
+                <SunLineArt size={36} color="rgba(207,171,215,0.6)"/>
+              </div>
+            )}
+
+            {error&&(
+              <div className="card" style={{padding:"12px 16px",marginTop:12,borderColor:"rgba(232,180,184,0.4)"}}>
+                <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,color:"#c06880"}}>{error}</p>
+              </div>
+            )}
+
+            {/* ── RESULTS ── */}
+            {result&&(
+              <div style={{marginTop:32}} className="fade-up">
+
+                {/* Theme card */}
+                <div className="card-glow" style={{padding:"24px 22px",marginBottom:16,textAlign:"center",
+                  background:"rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",top:12,right:14,animation:"sparkle 3s ease-in-out infinite"}}>
+                    <StarDot style={{color:ph.accent,width:12,height:12}}/>
+                  </div>
+                  <div style={{position:"absolute",bottom:12,left:16,animation:"sparkle 4s ease-in-out infinite",animationDelay:"1s"}}>
+                    <StarDot style={{color:"rgba(254,236,150,0.7)",width:8,height:8}}/>
+                  </div>
+                  <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,letterSpacing:3,color:ph.color,
+                    textTransform:"uppercase",marginBottom:6}}>this week's theme</p>
+                  <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:300,
+                    color:"#5a3e6e",letterSpacing:1,marginBottom:10}}>{result.theme}</h2>
+                  <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",
+                    color:"#8a6e9e",lineHeight:1.7,marginBottom:8}}>{result.phaseNote}</p>
+                  <div style={{display:"inline-block",padding:"4px 14px",borderRadius:20,
+                    background:ph.bg,border:`1px solid ${ph.accent}50`}}>
+                    <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,color:ph.color,letterSpacing:0.5}}>💪 {result.proteinSummary}</p>
+                  </div>
+                </div>
+
+                {/* Email button */}
+                <div style={{marginBottom:14,textAlign:"center"}}>
+                  <button onClick={()=>sendEmail(result)}
+                    style={{padding:"10px 28px",borderRadius:40,border:`1.5px solid ${ph.accent}`,
+                      background:emailSent?"rgba(255,255,255,0.6)":"rgba(255,255,255,0.85)",
+                      color:ph.color,fontFamily:"'Josefin Sans',sans-serif",
+                      fontSize:11,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",
+                      boxShadow:emailSent?"none":`0 2px 16px ${ph.accent}40`,transition:"all 0.2s"}}>
+                    {emailSent?"↻ resend?":"📧 send it?"}
+                  </button>
+                </div>
+
+                {/* Tabs */}
+                <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
+                  {TABS.map((tab,i)=>(
+                    <button key={i} className={`tab-btn${activeTab===i?" active":""}`} onClick={()=>setActiveTab(i)}>
+                      {tab} <span style={{marginLeft:4,textTransform:"uppercase",letterSpacing:1}}>{TAB_LABELS[i]}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab: Meals */}
+                {activeTab===0&&(
+                  <div className="fade-in">
+                    {(result.meals||[]).map((m,i)=>(
+                      <div key={i} className="card" style={{padding:"16px 18px",marginBottom:10}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                          <div style={{flex:1}}>
+                            <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,letterSpacing:2.5,
+                              color:ph.color,textTransform:"uppercase",marginBottom:4}}>{m.slot}</p>
+                            <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,
+                              color:"#5a3e6e",marginBottom:5}}>{m.name}</p>
+                            <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,color:"#9b7faa",
+                              lineHeight:1.6,letterSpacing:0.2}}>{m.description}</p>
+                            <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,color:"#c4aed0",
+                              marginTop:5,letterSpacing:0.5}}>✦ {m.highlight}</p>
+                          </div>
+                          <div style={{flexShrink:0,padding:"5px 12px",borderRadius:20,
+                            background:ph.bg,border:`1px solid ${ph.accent}50`}}>
+                            <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,
+                              color:ph.color,fontWeight:600}}>{m.proteinPer}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {result.snacks&&(
+                      <div style={{marginTop:20}}>
+                        <p className="label" style={{marginBottom:10}}>🫙 Snacks</p>
+                        {result.snacks.map((s,i)=>(
+                          <div key={i} className="card" style={{padding:"10px 16px",display:"flex",
+                            justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                            <div>
+                              <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                                color:"#5a3e6e",fontWeight:600}}>{s.name}</span>
+                              <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:11,
+                                color:"#c4aed0",marginLeft:8}}>{s.note}</span>
+                            </div>
+                            <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,
+                              color:ph.color,fontWeight:600}}>{s.protein}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab: Ingredients */}
+                {activeTab===1&&result.ingredientList&&(
+                  <div className="fade-in">
+                    {Object.entries(result.ingredientList).map(([cat,items])=>items&&items.length>0&&(
+                      <div key={cat} style={{marginBottom:20}}>
+                        <p className="label" style={{marginBottom:8}}>{catLabel[cat]||cat}</p>
+                        <div className="card" style={{overflow:"hidden"}}>
+                          {items.map((item,i)=>(
+                            <div key={i} style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr auto",
+                              gap:10,alignItems:"center",
+                              borderBottom:i<items.length-1?"1px solid rgba(207,171,215,0.2)":"none"}}>
+                              <div>
+                                <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                                  color:"#5a3e6e",fontWeight:600}}>{item.item}</span>
+                                <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,
+                                  color:"#c4aed0",marginLeft:8,letterSpacing:0.3}}>{item.purpose}</span>
+                              </div>
+                              <div style={{padding:"3px 12px",borderRadius:20,
+                                background:ph.bg,border:`1px solid ${ph.accent}40`}}>
+                                <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:11,
+                                  color:ph.color,fontWeight:600,whiteSpace:"nowrap"}}>{item.amount} {item.unit}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tab: Cook */}
+                {activeTab===2&&result.cookInstructions&&(
+                  <div className="fade-in">
+                    <div className="card" style={{padding:"16px 18px",marginBottom:14}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                        <p className="label" style={{margin:0}}>Cook Session</p>
+                        <div style={{padding:"4px 12px",borderRadius:20,
+                          background:`linear-gradient(135deg,${ph.color},${ph.accent})`,}}>
+                          <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:11,color:"white",fontWeight:600}}>
+                            ⏱ {result.cookInstructions.totalTime}
+                          </span>
+                        </div>
+                      </div>
+                      <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",
+                        color:"#8a6e9e",lineHeight:1.6}}>{result.cookInstructions.overview}</p>
+                    </div>
+                    {(result.cookInstructions.steps||[]).map((step,i)=>(
+                      <div key={i} className="card" style={{padding:"16px 18px",display:"flex",gap:14,marginBottom:10}}>
+                        <div style={{flexShrink:0,width:32,height:32,borderRadius:"50%",
+                          background:`linear-gradient(135deg,${ph.color},${ph.accent})`,
+                          display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:13,
+                            color:"white",fontWeight:600}}>{step.step}</span>
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:4,marginBottom:5}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                                fontWeight:600,color:"#5a3e6e"}}>{step.title}</span>
+                              <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,
+                                letterSpacing:1,color:ph.color,background:ph.bg,
+                                padding:"2px 8px",borderRadius:10,textTransform:"uppercase"}}>{step.appliance}</span>
+                            </div>
+                            <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,color:"#c4aed0"}}>⏱ {step.duration}</span>
+                          </div>
+                          <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,color:"#9b7faa",
+                            lineHeight:1.7,letterSpacing:0.2}}>{step.instructions}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {result.cookInstructions.storageNotes&&(
+                      <div style={{padding:"12px 16px",borderRadius:14,
+                        background:`linear-gradient(135deg,${ph.bg},rgba(255,255,255,0.4))`,
+                        border:`1px solid ${ph.accent}40`}}>
+                        <p className="label" style={{marginBottom:4}}>📦 Storage</p>
+                        <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,
+                          color:"#9b7faa",lineHeight:1.6}}>{result.cookInstructions.storageNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab: Remixes */}
+                {activeTab===3&&result.remixes&&(
+                  <div className="fade-in">
+                    {result.remixes.map((remix,i)=>(
+                      <div key={i} style={{marginBottom:22}}>
+                        <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontStyle:"italic",
+                          color:"#5a3e6e",marginBottom:10}}>🫙 from: <em>{remix.baseBatch}</em></p>
+                        {(remix.variations||[]).map((v,j)=>(
+                          <div key={j} className="card" style={{padding:"14px 16px",marginBottom:8}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                              <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                                fontWeight:600,color:"#5a3e6e"}}>{v.name}</span>
+                              <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,
+                                letterSpacing:1,color:ph.color,background:ph.bg,
+                                padding:"3px 10px",borderRadius:20,whiteSpace:"nowrap",
+                                border:`1px solid ${ph.accent}40`,textTransform:"uppercase"}}>{v.vibe}</span>
+                            </div>
+                            <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,
+                              color:"#9b7faa",lineHeight:1.6,marginTop:5,letterSpacing:0.2}}>{v.howTo}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tab: Safety */}
+                {activeTab===4&&result.foodSafety&&(
+                  <div className="fade-in">
+                    <p className="label" style={{marginBottom:8}}>🌡 Refrigerate</p>
+                    <div className="card" style={{overflow:"hidden",marginBottom:16}}>
+                      {(result.foodSafety.fridge||[]).map((item,i)=>(
+                        <div key={i} style={{padding:"11px 16px",display:"grid",gridTemplateColumns:"1fr auto",
+                          gap:10,alignItems:"center",
+                          borderBottom:i<result.foodSafety.fridge.length-1?"1px solid rgba(207,171,215,0.2)":"none"}}>
+                          <div>
+                            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                              fontWeight:600,color:"#5a3e6e"}}>{item.item}</span>
+                            <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,
+                              color:"#c4aed0",marginLeft:8}}>{item.tip}</span>
+                          </div>
+                          <span style={{padding:"3px 10px",borderRadius:20,whiteSpace:"nowrap",
+                            background:"rgba(180,232,200,0.3)",border:"1px solid rgba(100,180,130,0.3)",
+                            fontFamily:"'Josefin Sans',sans-serif",fontSize:11,
+                            color:"#3a7a5a",fontWeight:600}}>{item.duration}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="label" style={{marginBottom:8}}>🧊 Freeze</p>
+                    <div className="card" style={{overflow:"hidden",marginBottom:16}}>
+                      {(result.foodSafety.freezer||[]).map((item,i)=>(
+                        <div key={i} style={{padding:"11px 16px",display:"grid",gridTemplateColumns:"1fr auto",
+                          gap:10,alignItems:"center",
+                          borderBottom:i<result.foodSafety.freezer.length-1?"1px solid rgba(207,171,215,0.2)":"none"}}>
+                          <div>
+                            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                              fontWeight:600,color:"#5a3e6e"}}>{item.item}</span>
+                            <span style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,
+                              color:"#c4aed0",marginLeft:8}}>{item.tip}</span>
+                          </div>
+                          <span style={{padding:"3px 10px",borderRadius:20,whiteSpace:"nowrap",
+                            background:"rgba(180,210,240,0.3)",border:"1px solid rgba(100,150,200,0.3)",
+                            fontFamily:"'Josefin Sans',sans-serif",fontSize:11,
+                            color:"#3a6090",fontWeight:600}}>{item.duration}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {result.foodSafety.notes&&(
+                      <div style={{padding:"12px 16px",borderRadius:14,
+                        background:`linear-gradient(135deg,${ph.bg},rgba(255,255,255,0.4))`,
+                        border:`1px solid ${ph.accent}40`}}>
+                        <p className="label" style={{marginBottom:4}}>⚠️ Note</p>
+                        <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,color:"#9b7faa",lineHeight:1.6}}>{result.foodSafety.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab: Schedule */}
+                {activeTab===5&&result.schedule&&(
+                  <div className="fade-in">
+                    <div style={{padding:"18px 20px",borderRadius:16,marginBottom:14,textAlign:"center",
+                      background:`linear-gradient(135deg,${ph.color}dd,${ph.accent}bb)`,
+                      boxShadow:`0 4px 24px ${ph.accent}50`}}>
+                      <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,letterSpacing:3,
+                        textTransform:"uppercase",color:"rgba(255,255,255,0.7)",marginBottom:4}}>main prep session</p>
+                      <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:300,
+                        color:"white",letterSpacing:2}}>{result.schedule.prepDay} · {result.schedule.prepTime}</p>
+                    </div>
+                    {(result.schedule.reminders||[]).map((r,i)=>(
+                      <div key={i} className="card" style={{padding:"12px 16px",display:"flex",
+                        gap:14,alignItems:"center",marginBottom:8}}>
+                        <div style={{flexShrink:0,textAlign:"center",minWidth:54}}>
+                          <div style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:8,letterSpacing:1.5,
+                            color:ph.color,textTransform:"uppercase",fontWeight:600}}>{r.day}</div>
+                          <div style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:12,
+                            fontWeight:600,color:"#5a3e6e"}}>{r.time}</div>
+                        </div>
+                        <div style={{width:1,height:28,background:"rgba(207,171,215,0.3)"}}/>
+                        <div style={{flex:1}}>
+                          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,
+                            fontWeight:600,color:"#5a3e6e"}}>{r.task}</div>
+                          {r.note&&<div style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:10,
+                            color:"#c4aed0",marginTop:2,letterSpacing:0.3}}>{r.note}</div>}
+                        </div>
+                        <StarDot style={{color:"rgba(207,171,215,0.6)",width:10,height:10,flexShrink:0}}/>
+                      </div>
+                    ))}
+                    <div className="card-glow" style={{padding:"20px",textAlign:"center",marginTop:12}}>
+                      <p style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:9,letterSpacing:2.5,
+                        color:ph.color,textTransform:"uppercase",marginBottom:6}}>📲 add to calendar</p>
+                      <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontStyle:"italic",
+                        color:"#9b7faa",marginBottom:14}}>Import reminders into Apple or Google Calendar</p>
+                      <button onClick={downloadICS}
+                        style={{padding:"12px 28px",borderRadius:40,border:"none",
+                          background:`linear-gradient(135deg,${ph.color},${ph.accent})`,
+                          color:"white",fontFamily:"'Josefin Sans',sans-serif",fontSize:11,
+                          fontWeight:600,letterSpacing:2,textTransform:"uppercase",
+                          boxShadow:`0 4px 20px ${ph.accent}50`,cursor:"pointer"}}>
+                        ⬇ Download .ics
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
