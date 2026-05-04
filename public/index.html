@@ -342,7 +342,7 @@ schedule.reminders: 5–7 spread across the week.`;
     } finally {
       setLoading(false);
     }
-  }, [phase, week, favFoods, season, useSeason, prepFor, budgetMin, budgetMax, cuisines]);
+  }, [phase, favFoods, season, useSeason, prepFor, budgetMin, budgetMax, cuisines]);
 
   const sendEmail = async () => {
     if(!result) return;
