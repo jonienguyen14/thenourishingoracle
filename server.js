@@ -1,10 +1,10 @@
 const express = require('express');
 const path = require('path');
-
+ 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-
+ 
 app.post('/api/chat', async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -16,9 +16,9 @@ app.post('/api/chat', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(req.body)
     });
     const data = await response.json();
     res.json(data);
@@ -26,10 +26,10 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: { message: err.message } });
   }
 });
-
+ 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
-const PORT = process.env.PORT || 3000;
+ 
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Meal Prep Oracle running on port ${PORT}`));
