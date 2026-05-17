@@ -145,6 +145,29 @@
   .error-msg{background:rgba(200,80,80,.1);border:1px solid rgba(200,80,80,.25);border-radius:12px;padding:16px;color:#e8a0a0;font-size:.86rem;line-height:1.6;margin-top:16px}
 
   .storage-note{margin-top:16px;padding:12px 16px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid rgba(255,255,255,.06);font-size:.8rem;color:#8070a0;line-height:1.6}
+
+  /* Meal swap modal */
+  .meal-card{cursor:pointer;transition:all .2s}
+  .meal-card:hover{border-color:rgba(200,168,240,.35);background:rgba(200,168,240,.07);transform:translateY(-1px)}
+  .meal-card .swap-hint{font-size:.62rem;color:#6050a0;margin-top:8px;letter-spacing:.08em;opacity:0;transition:opacity .2s}
+  .meal-card:hover .swap-hint{opacity:1}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal{background:#12101e;border:1px solid rgba(200,168,240,.2);border-radius:20px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .modal-slot{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#8070a0;margin-bottom:6px}
+  .modal-name{font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:#e8d8f8;margin-bottom:20px}
+  .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .modal-action-btn{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#c0b0d8;cursor:pointer;font-size:.82rem;text-align:center;transition:all .2s;font-family:'Inter',sans-serif}
+  .modal-action-btn:hover{border-color:rgba(200,168,240,.4);background:rgba(200,168,240,.1)}
+  .modal-action-btn.selected{border-color:rgba(200,168,240,.5);background:rgba(200,168,240,.15);color:#e0d0f8}
+  .modal-tweak-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;color:#e8e0f0;font-family:'Inter',sans-serif;font-size:.86rem;outline:none;resize:none;min-height:72px;transition:border-color .2s;margin-bottom:14px}
+  .modal-tweak-input:focus{border-color:rgba(200,168,240,.5)}
+  .modal-btns{display:flex;gap:10px;justify-content:flex-end}
+  .modal-cancel{padding:9px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8070a0;cursor:pointer;font-size:.8rem;font-family:'Inter',sans-serif}
+  .modal-confirm{padding:9px 20px;border-radius:20px;border:1px solid rgba(200,168,240,.3);background:rgba(200,168,240,.15);color:#d0b8f0;cursor:pointer;font-size:.8rem;font-family:'Inter',sans-serif;transition:all .2s}
+  .modal-confirm:hover:not(:disabled){background:rgba(200,168,240,.28)}
+  .modal-confirm:disabled{opacity:.4;cursor:not-allowed}
+  .modal-loading{text-align:center;padding:20px 0;font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-style:italic;color:#c0a8e8}
 </style>
 </head>
 <body>
@@ -212,6 +235,10 @@ function App() {
   const [error, setError]         = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [emailSent, setEmailSent] = useState(false);
+  const [swapModal, setSwapModal] = useState(null); // {index, meal}
+  const [swapMode, setSwapMode]   = useState("swap"); // "swap" | "tweak"
+  const [tweakNote, setTweakNote] = useState("");
+  const [swapLoading, setSwapLoading] = useState(false);
 
   useEffect(() => { initStars(); }, []);
 
@@ -327,7 +354,7 @@ schedule.reminders: 5–7 spread across the week.`;
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-opus-4-5",
-          max_tokens:4096,
+          max_tokens:8192,
           messages:[{role:"user",content:prompt}]
         })
       });
@@ -343,6 +370,54 @@ schedule.reminders: 5–7 spread across the week.`;
       setLoading(false);
     }
   }, [phase, favFoods, season, useSeason, prepFor, budgetMin, budgetMax, cuisines]);
+
+  const swapMeal = async () => {
+    if(!swapModal) return;
+    setSwapLoading(true);
+    const {index, meal} = swapModal;
+    const tweakInstr = swapMode==="tweak" && tweakNote ? `User request: "${tweakNote}".` : "Generate a completely different option.";
+    const prompt = `You are a cycle-aware meal prep coach. Replace ONE meal slot in a weekly plan.
+
+Current meal: "${meal.name}" (${meal.slot})
+${tweakInstr}
+
+Context:
+- Cycle phase: ${phase.label}. ${phase.desc}
+- Plant-forward, high protein. Proteins: Impossible Meat, Beyond Beef, tempeh, tempeh bacon, marinated tofu, eggs, lentils, chickpeas, Greek yogurt, cottage cheese.
+- Breakfast slots: NO-COOK assembly bowls only, batch-prepped.
+- Keep protein target similar to original (${meal.proteinPer}).
+
+Return ONLY valid JSON (no markdown):
+{"slot":"${meal.slot}","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""}`;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"claude-opus-4-5",
+          max_tokens:512,
+          messages:[{role:"user",content:prompt}]
+        })
+      });
+      const data = await res.json();
+      if(data.error) throw new Error(data.error.message);
+      const text = data.content?.map(b=>b.text||"").join("") || "";
+      const clean = text.replace(/```json|```/g,"").trim();
+      const newMeal = JSON.parse(clean);
+      setResult(prev => {
+        const meals = [...(prev.meals||[])];
+        meals[index] = newMeal;
+        return {...prev, meals};
+      });
+      setSwapModal(null);
+      setTweakNote("");
+    } catch(e) {
+      alert("Swap failed: " + e.message);
+    } finally {
+      setSwapLoading(false);
+    }
+  };
 
   const sendEmail = async () => {
     if(!result) return;
@@ -475,7 +550,7 @@ schedule.reminders: 5–7 spread across the week.`;
             <div>
               <div className="meal-grid">
                 {(result.meals||[]).map((m,i)=>(
-                  <div key={i} className="meal-card">
+                  <div key={i} className="meal-card" onClick={()=>{setSwapModal({index:i,meal:m});setSwapMode("swap");setTweakNote("");}}>
                     <div className="meal-slot">{m.slot}</div>
                     <div className="meal-name">{m.name}</div>
                     <div className="meal-desc">{m.description}</div>
@@ -483,6 +558,7 @@ schedule.reminders: 5–7 spread across the week.`;
                       <span className="pill">🥩 {m.proteinPer}</span>
                       {m.highlight && <span className="pill">{m.highlight}</span>}
                     </div>
+                    <div className="swap-hint">✦ tap to swap or tweak</div>
                   </div>
                 ))}
               </div>
@@ -633,6 +709,42 @@ schedule.reminders: 5–7 spread across the week.`;
             <button className="email-btn" onClick={sendEmail}>
               {emailSent ? "resend? ✉️" : "send it? ✉️"}
             </button>
+          </div>
+        </div>
+      )}
+      {swapModal && (
+        <div className="modal-backdrop" onClick={e=>{if(e.target===e.currentTarget){setSwapModal(null);setTweakNote("");}}}>
+          <div className="modal">
+            {swapLoading ? (
+              <div className="modal-loading">✦ Finding something better…</div>
+            ) : (
+              <>
+                <div className="modal-slot">{swapModal.meal.slot}</div>
+                <div className="modal-name">{swapModal.meal.name}</div>
+                <div className="modal-actions">
+                  <button className={`modal-action-btn ${swapMode==="swap"?"selected":""}`} onClick={()=>setSwapMode("swap")}>
+                    🔀 Swap it<br/><span style={{fontSize:".72rem",opacity:.7}}>Give me something new</span>
+                  </button>
+                  <button className={`modal-action-btn ${swapMode==="tweak"?"selected":""}`} onClick={()=>setSwapMode("tweak")}>
+                    ✏️ Tweak it<br/><span style={{fontSize:".72rem",opacity:.7}}>I have notes</span>
+                  </button>
+                </div>
+                {swapMode==="tweak" && (
+                  <textarea
+                    className="modal-tweak-input"
+                    placeholder="e.g. no tofu, make it spicier, something Korean, higher protein…"
+                    value={tweakNote}
+                    onChange={e=>setTweakNote(e.target.value)}
+                  />
+                )}
+                <div className="modal-btns">
+                  <button className="modal-cancel" onClick={()=>{setSwapModal(null);setTweakNote("");}}>cancel</button>
+                  <button className="modal-confirm" onClick={swapMeal} disabled={swapMode==="tweak"&&!tweakNote.trim()}>
+                    ✦ {swapMode==="swap"?"Swap meal":"Apply tweak"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
