@@ -271,8 +271,8 @@ PEOPLE:
 - Prepping for: ${servings}
 
 PREFERENCES:
-- Plant-forward but flexible. Primary proteins to rotate through: Impossible Meat, Beyond Beef burgers, tempeh, tempeh bacon, marinated tofu, edamame, lentils, chickpeas, eggs, Greek yogurt, cottage cheese.
-- IMPORTANT: Include 2 x 4oz steak servings somewhere in the week plan (sous vide or pan-seared). One for Jonie, one for Joe.
+- Plant-forward but flexible. Primary proteins to rotate through: Impossible Meat, Impossible Meat sausages, Beyond Beef burgers, tempeh, tempeh bacon, marinated tofu, edamame, lentils, chickpeas, eggs, Greek yogurt, cottage cheese.
+- ${["luteal","menstrual"].includes(phase.id) ? "IMPORTANT: Include 2 x 4oz steak servings (sous vide or pan-seared) — one for Jonie, one for Joe. Iron-rich red meat supports this phase." : "NO steak this week — current phase does not call for red meat. Skip the Steak Night slot entirely."}
 - Avoid heavy meat-forward meals otherwise. Occasional eggs/dairy OK.
 - Instant Pot favorites to draw from: lentil soup with beef, hearty chili, or congee. Include at least one Instant Pot batch meal.
 - Favorite foods: ${favFoods || "flexible"}
@@ -306,8 +306,8 @@ Return ONLY valid JSON (no markdown, no backticks, no extra text):
     {"slot":"Lunch 1","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""},
     {"slot":"Lunch 2","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""},
     {"slot":"Dinner 1","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""},
-    {"slot":"Dinner 2","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""},
-    {"slot":"Steak Night","name":"4oz Steak (×2)","description":"1 sentence on prep method","proteinPer":"~28g each","highlight":"sous vide or pan-seared"}
+    {"slot":"Dinner 2","name":"","description":"1 sentence","proteinPer":"Xg","highlight":""}${["luteal","menstrual"].includes(phase.id) ? `,
+    {"slot":"Steak Night","name":"4oz Steak (×2)","description":"1 sentence on prep method","proteinPer":"~28g each","highlight":"sous vide or pan-seared"}` : ""}
   ],
   "snacks": [
     {"name":"","protein":"Xg","note":"brief"},
